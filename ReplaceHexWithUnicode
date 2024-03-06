@@ -30,7 +30,7 @@ class Program
             // If the node is a text node, perform the replacement
             if (child.NodeType == XmlNodeType.Text)
             {
-                string newText = Regex.Replace(child.InnerText, "&#x", "Unicode");
+                string newText = Regex.Replace(child.InnerText, @"[^\u0020-\u007E]", match => $"U+{(int)match.Value[0]:X4}");
                 child.InnerText = newText;
             }
             else
