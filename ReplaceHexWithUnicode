@@ -1,0 +1,43 @@
+using Newtonsoft.Json;
+using System;
+using System.Text.RegularExpressions;
+using System.Xml;
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        // Example JSON string representing XML content
+        string dimension = "{\"Root\":{\"Element\":\"This is a test string with character entities like &#x0006 and &#x0022.\"}}";
+
+        // Deserialize JSON string to XML document
+        var dimensionXml = JsonConvert.DeserializeXmlNode(dimension.ToString(), "document");
+
+        // Replace "&#x" with "Unicode" in the XML content
+        ReplaceHexWithUnicode(dimensionXml.DocumentElement);
+
+        // Save XML to file
+        dimensionXml.Save("output.xml");
+
+        Console.WriteLine("XML saved successfully.");
+    }
+
+    static void ReplaceHexWithUnicode(XmlNode node)
+    {
+        // Iterate through child nodes
+        foreach (XmlNode child in node.ChildNodes)
+        {
+            // If the node is a text node, perform the replacement
+            if (child.NodeType == XmlNodeType.Text)
+            {
+                string newText = Regex.Replace(child.InnerText, "&#x", "Unicode");
+                child.InnerText = newText;
+            }
+            else
+            {
+                // Recursively traverse child nodes
+                ReplaceHexWithUnicode(child);
+            }
+        }
+    }
+}
