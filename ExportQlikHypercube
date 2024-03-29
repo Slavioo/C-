@@ -1,0 +1,78 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using Qlik.Engine;
+using Qlik.Sense.Client;
+
+class QlikGenericDataReader
+{
+    static async Task Main(string[] args)
+    {
+        // Configure the Qlik Sense connection
+        Uri qlikSenseServerUri = new Uri("https://your-qlik-sense-server-url");
+        ILocation location = Qlik.Engine.Location.FromUri(qlikSenseServerUri);
+        location.AsNtlmUserViaProxy(proxyUsesSsl: true);
+
+        try
+        {
+            // Connect to the app
+            IAppIdentifier appIdentifier = location.AppWithId("Your-App-Id");
+            using (IApp app = location.App(appIdentifier))
+            {
+                // Get the list of objects in the app
+                var sheet = app.GetSheet("My Sheet ID");
+                var myTable = sheet.GetHyperCube("My Table ID");
+
+                // Get the hypercube definition to determine dimensions and measures
+                var hyperCubeDef = myTable.GetHyperCubeDef();
+
+                // Get the data from the hypercube
+                var dataPage = myTable.GetHyperCubeData("/qHyperCubeDef", new List<NxPage> { new NxPage { Top = 0, Left = 0, Height = 50, Width = hyperCubeDef.Dimensions.Count + hyperCubeDef.Measures.Count } }).First();
+
+                // Write data to a file
+                string filePath = @"C:\path\to\your\file.txt";
+                using (StreamWriter writer = new StreamWriter(filePath))
+                {
+                    foreach (var row in dataPage.Matrix)
+                    {
+                        foreach (var cell in row.Cells)
+                        {
+                            writer.Write(cell.Text + "\t"); // Tab-separated values
+                        }
+                        writer.WriteLine();
+                    }
+                }
+
+                // Read data with StreamReader asynchronously
+                await ReadDataFromFileAsync(filePath);
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("An error occurred: " + e.Message);
+        }
+    }
+
+    static async Task ReadDataFromFileAsync(string filePath)
+    {
+        try
+        {
+            using (StreamReader reader = new StreamReader(filePath))
+            {
+                string line;
+                while ((line = await reader.ReadLineAsync()) != null)
+                {
+                    // Process the line
+                    Console.WriteLine(line);
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("The file could not be read:");
+            Console.WriteLine(e.Message);
+        }
+    }
+}
