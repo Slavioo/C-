@@ -53,9 +53,18 @@ class Program
 
             // Get the table's data
             var pageWidth = tableObject.Layout.HyperCube.Size.cx;
-            var pageHeight = 20;
+            var pageHeight = 50;
             var totalHeight = tableObject.Layout.HyperCube.Size.cy;
             var numPages = (int)Math.Ceiling((double)totalHeight / pageHeight);
+            var dimensionHeaders = tableObject.Layout.HyperCube.DimensionInfo.Select(dim => dim.FallbackTitle).ToList();
+            var measureHeaders = tableObject.Layout.HyperCube.MeasureInfo.Select(measure => measure.FallbackTitle).ToList();
+            var interColumnSortOrder = tableObject.Layout.HyperCube.EffectiveInterColumnSortOrder;
+            var jsonDimensionHeaders = JsonConvert.SerializeObject(dimensionHeaders, Formatting.Indented);
+            var jsonMeasureHeaders = JsonConvert.SerializeObject(measureHeaders, Formatting.Indented);
+            var jsonInterColumnSortOrder = JsonConvert.SerializeObject(interColumnSortOrder, Formatting.Indented);
+            Console.WriteLine(jsonDimensionHeaders);
+            Console.WriteLine(jsonMeasureHeaders);
+            Console.WriteLine(jsonInterColumnSortOrder);
 
             for (int i = 0; i < numPages; i++)
             {
