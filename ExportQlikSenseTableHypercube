@@ -1,0 +1,86 @@
+using Newtonsoft.Json;
+using System;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using Qlik.Sense.Client.Visualizations;
+using Qlik.Sense.Client;
+using Qlik.Engine;
+using Newtonsoft.Json.Linq;
+
+// Connect to the Qlik Sense Desktop
+var appName = "DeleteTest";
+var location = Qlik.Engine.Location.FromUri(new Uri("ws://localhost:4848"));
+location.AsDirectConnectionToPersonalEdition();
+
+// Get the list of all apps
+var appIdentifiers = location.GetAppIdentifiers();
+
+// Find the app with the name you're looking for
+var appIdentifier = appIdentifiers.FirstOrDefault(app => app.AppName == $"{appName}.qvf");
+
+if (appIdentifier == null)
+{
+    Console.WriteLine($"Could not find app with name '{appName}'");
+    return;
+}
+
+// Open the app
+var app = location.App(appIdentifier.AppId);
+
+// Get all objects in the app
+var allInfos = app.GetAllInfos();
+
+// Filter the list to get only the tables
+var tables = allInfos.Where(info => info.Type == "table").ToList();
+
+// Create a list to hold all the tasks
+List<Task> tasks = new List<Task>();
+
+// Process the tables in parallel
+foreach (var table in tables)
+{
+    tasks.Add(Task.Run(async () =>
+    {
+        // Get the table object
+        var tableObject = app.GetObject<Table>(table.Id);
+        var tableLayout = JsonConvert.SerializeObject(tableObject.Layout, Formatting.Indented);
+        JObject layout = JsonConvert.DeserializeObject<JObject>(tableLayout);
+
+        string tableTitle = layout["title"].ToString();
+
+        // Get the table's data
+        var pageWidth = tableObject.Layout.HyperCube.Size.cx;
+        var pageHeight = 50;
+        var totalHeight = tableObject.Layout.HyperCube.Size.cy;
+        var numPages = (int)Math.Ceiling((double)totalHeight / pageHeight);
+        var dimensionHeaders = tableObject.Layout.HyperCube.DimensionInfo.Select((dim, id) => new { Id = id, Header = dim.FallbackTitle }).ToList();
+        var measureHeaders = tableObject.Layout.HyperCube.MeasureInfo.Select((measure, id) => new { Id = id + dimensionHeaders.Count, Header = measure.FallbackTitle }).ToList();
+        var columnOrder = tableObject.Layout.HyperCube.ColumnOrder;
+        var allHeaders = dimensionHeaders.Concat(measureHeaders).ToList();
+        var orderedHeaders = columnOrder.Select(id => allHeaders.First(h => h.Id == id)).ToList();
+
+        // Create a StreamWriter to write to the CSV file
+        using (StreamWriter writer = new StreamWriter($"{table.Id}.csv"))
+        {
+            await writer.WriteLineAsync(string.Join(",", orderedHeaders.Select(h => h.Header)));
+
+            for (int i = 0; i < numPages; i++)
+            {
+                var tableData = tableObject.GetHyperCubeData("/qHyperCubeDef", new List<NxPage> { new NxPage { Top = i * pageHeight, Left = 0, Width = pageWidth, Height = pageHeight } });
+
+                // Iterate through the data and write it to the CSV file
+                foreach (var page in tableData)
+                {
+                    foreach (var row in page.Matrix)
+                    {
+                        await writer.WriteLineAsync(string.Join(",", row.Select(cell => cell.Text)));
+                    }
+                }
+            }
+        }
+    }));
+}
+
+// Wait for all tasks to complete
+await Task.WhenAll(tasks);
