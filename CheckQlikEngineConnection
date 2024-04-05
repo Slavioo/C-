@@ -1,0 +1,10 @@
+// Assuming 'location' is your current Qlik Engine location
+var existingConnection = location.GetConnection();
+if(existingConnection != null)
+{
+    // Connection exists, you can use 'existingConnection' to interact with the Qlik Engine
+}
+else
+{
+    // No existing connection, proceed to create a new one
+}
