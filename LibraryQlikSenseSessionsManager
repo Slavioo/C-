@@ -1,0 +1,39 @@
+using System;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Threading.Tasks;
+using Newtonsoft.Json;
+
+public class QlikSenseSessionManager
+{
+    private readonly string _baseUrl;
+    private readonly HttpClient _httpClient;
+
+    public QlikSenseSessionManager(string baseUrl)
+    {
+        _baseUrl = baseUrl;
+        _httpClient = new HttpClient();
+        _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+    }
+
+    public async Task<string> GetUserSessionsAsync()
+    {
+        var response = await _httpClient.GetAsync($"{_baseUrl}/qps/user");
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsStringAsync();
+    }
+
+    public async Task<string> CreateSessionAsync(string userId, string userDirectory)
+    {
+        var content = new StringContent(JsonConvert.SerializeObject(new { UserId = userId, UserDirectory = userDirectory }), System.Text.Encoding.UTF8, "application/json");
+        var response = await _httpClient.PostAsync($"{_baseUrl}/qps/session", content);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsStringAsync();
+    }
+
+    public async Task DeleteSessionAsync(string sessionId)
+    {
+        var response = await _httpClient.DeleteAsync($"{_baseUrl}/qps/session/{sessionId}");
+        response.EnsureSuccessStatusCode();
+    }
+}
