@@ -1,0 +1,3 @@
+QlikSenseSessionManager manager = new QlikSenseSessionManager("your_base_url");
+string userSessions = await manager.GetUserSessionsAsync();
+Console.WriteLine(userSessions);
