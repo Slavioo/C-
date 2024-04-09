@@ -1,0 +1,19 @@
+public class QlikSenseConnectionManager
+{
+    private static ILocation _locationInstance;
+    private static readonly object _lock = new object();
+
+    public static ILocation GetLocationInstance(Uri serverUri)
+    {
+        lock (_lock)
+        {
+            if (_locationInstance == null)
+            {
+                _locationInstance = Qlik.Engine.Location.FromUri(serverUri);
+                // Configure the connection, e.g., using NTLM authentication
+                _locationInstance.AsNtlmUserViaProxy(CredentialCache.DefaultNetworkCredentials, false);
+            }
+            return _locationInstance;
+        }
+    }
+}
