@@ -1,3 +1,25 @@
-QlikSenseSessionManager manager = new QlikSenseSessionManager("your_base_url");
-string userSessions = await manager.GetUserSessionsAsync();
-Console.WriteLine(userSessions);
+class Program
+{
+    static async Task Main(string[] args)
+    {
+        // Configuration settings can be loaded from appsettings.json or another source
+        string baseUrl = "http://your-qlik-sense-server.com";
+        string userId = "exampleUser";
+        string userDirectory = "USER_DIRECTORY";
+        string sessionId = "exampleSessionId";
+
+        QlikSenseSessionManager manager = new QlikSenseSessionManager(baseUrl);
+
+        // Example usage of GetUserSessionsAsync
+        string userSessions = await manager.GetUserSessionsAsync();
+        Console.WriteLine(userSessions);
+
+        // Example usage of CreateSessionAsync
+        string sessionDetails = await manager.CreateSessionAsync(userId, userDirectory);
+        Console.WriteLine(sessionDetails);
+
+        // Example usage of DeleteSessionAsync
+        await manager.DeleteSessionAsync(sessionId);
+        Console.WriteLine($"Session {sessionId} deleted.");
+    }
+}
